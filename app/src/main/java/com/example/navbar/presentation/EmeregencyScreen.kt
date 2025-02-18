@@ -10,14 +10,15 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
 import java.io.File
@@ -25,13 +26,17 @@ import java.io.File
 @Composable
 fun EmergencyScreen(navController: NavHostController) {
     val context = LocalContext.current
+    val config = LocalConfiguration.current
+
+    // Check if it's a round screen (WearOS)
+    val isRound = config.screenWidthDp == config.screenHeightDp
+
     val audioFile = File(context.externalCacheDir, "emergency_message.3gp")
     var mediaRecorder by remember { mutableStateOf<MediaRecorder?>(null) }
     var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
     var isRecording by remember { mutableStateOf(false) }
     var isPlaying by remember { mutableStateOf(false) }
 
-    // Permission Request Launcher
     val requestPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -40,79 +45,92 @@ fun EmergencyScreen(navController: NavHostController) {
         }
     }
 
-    // Check if permission is granted
     val hasRecordPermission = ContextCompat.checkSelfPermission(
         context, Manifest.permission.RECORD_AUDIO
     ) == PackageManager.PERMISSION_GRANTED
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xffCC0000)), // Red background for Emergency
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+    Scaffold(
+        containerColor = Color(0xffCC0000) // Red background for emergency
+    ) { _ ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xffCC0000)) // Red background
+                .padding(top = 24.dp, bottom = 16.dp), // Moves content lower to avoid cut-off
+            contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "Emergency Voice Message",
-                color = Color.White
-            )
-
-            // Start Recording Button
-            Button(
-                onClick = {
-                    if (hasRecordPermission) {
-                        startRecording(audioFile, context) { recorder -> mediaRecorder = recorder }
-                        isRecording = true
-                    } else {
-                        requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                    }
-                },
-                enabled = !isRecording
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Text("Start Recording")
-            }
+                Text(
+                    text = "Emergency Message",
+                    color = Color.White,
+                    fontSize = 18.sp
+                )
 
-            // Stop Recording Button
-            Button(
-                onClick = {
-                    stopRecording(mediaRecorder)
-                    isRecording = false
-                },
-                enabled = isRecording
-            ) {
-                Text("Stop Recording")
-            }
+                Spacer(modifier = Modifier.height(16.dp)) // Creates space before the first button
 
-            // Play Recorded Message Button
-            Button(
-                onClick = {
-                    if (audioFile.exists()) {
-                        if (!isPlaying) {
-                            playRecording(audioFile, context) { player -> mediaPlayer = player }
-                            isPlaying = true
+                Button(
+                    onClick = {
+                        if (hasRecordPermission) {
+                            startRecording(audioFile, context) { recorder -> mediaRecorder = recorder }
+                            isRecording = true
+                        } else {
+                            requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                         }
-                    } else {
-                        Toast.makeText(context, "No recording found!", Toast.LENGTH_SHORT).show()
-                    }
-                },
-                enabled = !isRecording && !isPlaying
-            ) {
-                Text("Play Recording")
-            }
+                    },
+                    enabled = !isRecording,
+                    modifier = Modifier.size(150.dp, 50.dp) // Adjusted button size
+                ) {
+                    Text("Start Recording")
+                }
 
-            // Stop Playing Button
-            Button(
-                onClick = {
-                    stopPlayback(mediaPlayer)
-                    isPlaying = false
-                },
-                enabled = isPlaying
-            ) {
-                Text("Stop Playback")
+                Spacer(modifier = Modifier.height(12.dp)) // Adds space between buttons
+
+                Button(
+                    onClick = {
+                        stopRecording(mediaRecorder)
+                        isRecording = false
+                    },
+                    enabled = isRecording,
+                    modifier = Modifier.size(150.dp, 50.dp) // Adjusted button size
+                ) {
+                    Text("Stop Recording")
+                }
+
+                Spacer(modifier = Modifier.height(12.dp)) // Adds space between buttons
+
+                Button(
+                    onClick = {
+                        if (audioFile.exists()) {
+                            if (!isPlaying) {
+                                playRecording(audioFile, context) { player -> mediaPlayer = player }
+                                isPlaying = true
+                            }
+                        } else {
+                            Toast.makeText(context, "No recording found!", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    enabled = !isRecording && !isPlaying,
+                    modifier = Modifier.size(150.dp, 50.dp) // Adjusted button size
+                ) {
+                    Text("Play Recording")
+                }
+
+                Spacer(modifier = Modifier.height(12.dp)) // Adds space between buttons
+
+                Button(
+                    onClick = {
+                        stopPlayback(mediaPlayer)
+                        isPlaying = false
+                    },
+                    enabled = isPlaying,
+                    modifier = Modifier.size(150.dp, 50.dp) // Adjusted button size
+                ) {
+                    Text("Stop Playback")
+                }
             }
         }
     }

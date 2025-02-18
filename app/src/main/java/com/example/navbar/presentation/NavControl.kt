@@ -1,15 +1,14 @@
 package com.example.navbar.presentation
 
-import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material.*
 import androidx.compose.ui.graphics.Color
@@ -22,55 +21,86 @@ import androidx.navigation.compose.rememberNavController
 fun WearableNavigationBarWithScreens() {
     val navController = rememberNavController()
     var selectedItem by remember { mutableStateOf(0) }
+    val config = LocalConfiguration.current
+    val isRound = config.screenWidthDp == config.screenHeightDp
 
     Scaffold(
         timeText = { TimeText() },
         vignette = { Vignette(vignettePosition = VignettePosition.TopAndBottom) }
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // Navigation graph
+            // Navigation Graph
             NavigationGraph(navController)
 
-            // Navigation bar
+            // Bottom Navigation Bar (Optimized for 450x450 screens)
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .height(50.dp) // Adjust height to make it slightly taller if needed
                     .fillMaxWidth()
+                    .padding(bottom = 22.dp) // Moves navbar slightly up for better visibility
             ) {
-                androidx.compose.material3.NavigationBar(
-                    containerColor = Color.Black, // Background color of the navigation bar
-                    contentColor = Color.White // Content color for icons
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    NavigationBarItem(
-                        icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                        selected = selectedItem == 0,
+                    // Home Button (Icon Only)
+                    CompactChip(
                         onClick = {
                             selectedItem = 0
                             navController.navigate("home") {
                                 popUpTo(navController.graph.startDestinationId) { inclusive = true }
                             }
-                        }
+                        },
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.Home,
+                                contentDescription = "Home",
+                                modifier = Modifier.size(16.dp) // Smaller icon size
+                            )
+                        },
+                        colors = ChipDefaults.primaryChipColors(Color.DarkGray),
+                        modifier = Modifier.width(65.dp).weight(1f) // Adjusted width & weight
                     )
-                    NavigationBarItem(
-                        icon = { Icon(Icons.Default.Phone, contentDescription = "Phone") },
-                        selected = selectedItem == 1,
+
+                    // Phone Button (Icon Only)
+                    CompactChip(
                         onClick = {
                             selectedItem = 1
                             navController.navigate("phone") {
                                 popUpTo(navController.graph.startDestinationId) { inclusive = true }
                             }
-                        }
+                        },
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.Phone,
+                                contentDescription = "Phone",
+                                modifier = Modifier.size(16.dp) // Smaller icon size
+                            )
+                        },
+                        colors = ChipDefaults.primaryChipColors(Color.DarkGray),
+                        modifier = Modifier.width(65.dp).weight(1f) // Adjusted width & weight
                     )
-                    NavigationBarItem(
-                        icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
-                        selected = selectedItem == 2,
+
+                    // Settings Button (Icon Only)
+                    CompactChip(
                         onClick = {
                             selectedItem = 2
                             navController.navigate("settings") {
                                 popUpTo(navController.graph.startDestinationId) { inclusive = true }
                             }
-                        }
+                        },
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Settings",
+                                modifier = Modifier.size(16.dp) // Smaller icon size
+                            )
+                        },
+                        colors = ChipDefaults.primaryChipColors(Color.DarkGray),
+                        modifier = Modifier.width(65.dp).weight(1f) // Adjusted width & weight
                     )
                 }
             }
@@ -78,7 +108,6 @@ fun WearableNavigationBarWithScreens() {
     }
 }
 
-@SuppressLint("ComposableDestinationInComposeScope")
 @Composable
 fun NavigationGraph(navController: NavHostController) {
     NavHost(navController = navController, startDestination = "home") {
@@ -91,6 +120,3 @@ fun NavigationGraph(navController: NavHostController) {
         composable("signup_screen") { SignUpScreen(navController) }
     }
 }
-
-
-
