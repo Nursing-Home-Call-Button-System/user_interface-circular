@@ -28,8 +28,7 @@ fun EmergencyScreen(navController: NavHostController) {
     val context = LocalContext.current
     val config = LocalConfiguration.current
 
-    // Check if it's a round screen (WearOS)
-    val isRound = config.screenWidthDp == config.screenHeightDp
+    val isRound = config.screenWidthDp == config.screenHeightDp // Detect round screen
 
     val audioFile = File(context.externalCacheDir, "emergency_message.3gp")
     var mediaRecorder by remember { mutableStateOf<MediaRecorder?>(null) }
@@ -56,80 +55,93 @@ fun EmergencyScreen(navController: NavHostController) {
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0xffCC0000)) // Red background
-                .padding(top = 24.dp, bottom = 16.dp), // Moves content lower to avoid cut-off
+                .padding(12.dp),
             contentAlignment = Alignment.Center
         ) {
             Column(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .wrapContentSize()
+                    .padding(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                verticalArrangement = Arrangement.spacedBy(8.dp) // Ensures even spacing
             ) {
                 Text(
                     text = "Emergency Message",
                     color = Color.White,
-                    fontSize = 18.sp
+                    fontSize = 16.sp,
+                    modifier = Modifier.padding(bottom = 6.dp)
                 )
 
-                Spacer(modifier = Modifier.height(16.dp)) // Creates space before the first button
-
-                Button(
-                    onClick = {
-                        if (hasRecordPermission) {
-                            startRecording(audioFile, context) { recorder -> mediaRecorder = recorder }
-                            isRecording = true
-                        } else {
-                            requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                        }
-                    },
-                    enabled = !isRecording,
-                    modifier = Modifier.size(150.dp, 50.dp) // Adjusted button size
+                // Row for Start and Stop Recording
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Start Recording")
-                }
-
-                Spacer(modifier = Modifier.height(12.dp)) // Adds space between buttons
-
-                Button(
-                    onClick = {
-                        stopRecording(mediaRecorder)
-                        isRecording = false
-                    },
-                    enabled = isRecording,
-                    modifier = Modifier.size(150.dp, 50.dp) // Adjusted button size
-                ) {
-                    Text("Stop Recording")
-                }
-
-                Spacer(modifier = Modifier.height(12.dp)) // Adds space between buttons
-
-                Button(
-                    onClick = {
-                        if (audioFile.exists()) {
-                            if (!isPlaying) {
-                                playRecording(audioFile, context) { player -> mediaPlayer = player }
-                                isPlaying = true
+                    Button(
+                        onClick = {
+                            if (hasRecordPermission) {
+                                startRecording(audioFile, context) { recorder -> mediaRecorder = recorder }
+                                isRecording = true
+                            } else {
+                                requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                             }
-                        } else {
-                            Toast.makeText(context, "No recording found!", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    enabled = !isRecording && !isPlaying,
-                    modifier = Modifier.size(150.dp, 50.dp) // Adjusted button size
-                ) {
-                    Text("Play Recording")
+                        },
+                        enabled = !isRecording,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(50.dp)
+                    ) {
+                        Text("Start", fontSize = 14.sp)
+                    }
+
+                    Button(
+                        onClick = {
+                            stopRecording(mediaRecorder)
+                            isRecording = false
+                        },
+                        enabled = isRecording,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(50.dp)
+                    ) {
+                        Text("Stop", fontSize = 14.sp)
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp)) // Adds space between buttons
-
-                Button(
-                    onClick = {
-                        stopPlayback(mediaPlayer)
-                        isPlaying = false
-                    },
-                    enabled = isPlaying,
-                    modifier = Modifier.size(150.dp, 50.dp) // Adjusted button size
+                // Row for Play and Stop Playback
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Stop Playback")
+                    Button(
+                        onClick = {
+                            if (audioFile.exists()) {
+                                if (!isPlaying) {
+                                    playRecording(audioFile, context) { player -> mediaPlayer = player }
+                                    isPlaying = true
+                                }
+                            } else {
+                                Toast.makeText(context, "No recording found!", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        enabled = !isRecording && !isPlaying,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(50.dp)
+                    ) {
+                        Text("Play", fontSize = 14.sp)
+                    }
+
+                    Button(
+                        onClick = {
+                            stopPlayback(mediaPlayer)
+                            isPlaying = false
+                        },
+                        enabled = isPlaying,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(50.dp)
+                    ) {
+                        Text("Stop", fontSize = 14.sp)
+                    }
                 }
             }
         }
@@ -173,6 +185,9 @@ fun playRecording(audioFile: File, context: android.content.Context, onPlayerRea
             setDataSource(audioFile.absolutePath)
             prepare()
             start()
+            setOnCompletionListener {
+                onPlayerReady(this) // Set playback state properly
+            }
         }
         onPlayerReady(mediaPlayer)
         Toast.makeText(context, "Playing Recording", Toast.LENGTH_SHORT).show()

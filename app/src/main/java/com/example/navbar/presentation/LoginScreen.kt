@@ -1,5 +1,6 @@
 package com.example.navbar.presentation
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
@@ -13,6 +14,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 
 @Composable
@@ -25,17 +28,63 @@ fun LoginScreen(navController: NavHostController) {
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
-    val backgroundColor = Color(0xFFF5F5DC)  // Soft Beige for Comfort
-    val buttonColor = Color(0xFF4682B4)  // Steel Blue for Better Contrast
-    val buttonTextColor = Color.White  // White for High Contrast
-    val textColor = Color.Black  // Dark Text for Readability
+    val backgroundColor = Color(0xFFF5F5DC)  // Soft Beige
+    val buttonColor = Color(0xFF4682B4)  // Steel Blue
+    val successColor = Color(0xFF3CB371) // Medium Sea Green
+    val buttonTextColor = Color.White
+    val textColor = Color.Black
+
+    val auth = FirebaseAuth.getInstance()
+    val db = FirebaseFirestore.getInstance()
+
+    // 🔹 Authenticate the user when the screen loads
+    LaunchedEffect(Unit) {
+        authenticateUser(auth)
+    }
+
+    fun savePatientData(name: String, room: String) {
+        if (auth.currentUser == null) {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar("Authentication failed, please try again")
+            }
+            return
+        }
+
+        if (name.isBlank() || room.isBlank()) {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar("Please enter both fields")
+            }
+            return
+        }
+
+        val patientData = hashMapOf(
+            "name" to name,
+            "roomNumber" to room,
+            "timestamp" to System.currentTimeMillis()
+        )
+
+        db.collection("patients")
+            .add(patientData)
+            .addOnSuccessListener { documentReference ->
+                Log.d("Firestore", "Document added with ID: ${documentReference.id}")
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar("Logged in and saved to Firebase!")
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e("Firestore", "Error adding document", e)
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar("Error saving data")
+                }
+            }
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         content = { paddingValues ->
             Box(
                 modifier = Modifier
-                    .fillMaxSize() // Fixes layout issue
+                    .fillMaxSize()
                     .background(backgroundColor)
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
@@ -43,79 +92,78 @@ fun LoginScreen(navController: NavHostController) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(12.dp), // Increased padding for spacing
+                        .padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
                         text = "Patient Profile",
-                        fontSize = 14.sp, // Increased for readability
+                        fontSize = 16.sp,
                         color = textColor,
-                        style = MaterialTheme.typography.labelLarge
+                        style = MaterialTheme.typography.titleMedium
                     )
 
-                    // Name Input Field
                     OutlinedTextField(
                         value = patientName,
                         onValueChange = { patientName = it },
-                        label = { Text("Name", fontSize = 12.sp, color = textColor) },
-                        placeholder = { Text("Enter name", fontSize = 12.sp, color = Color.Gray) },
-                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp, color = textColor),
+                        label = { Text("Name", fontSize = 14.sp, color = textColor) },
+                        placeholder = { Text("Enter name", fontSize = 14.sp, color = Color.Gray) },
                         singleLine = true,
-                        modifier = Modifier
-                            .width(150.dp) // Adjusted width for better fit
-                            .height(40.dp)
+                        modifier = Modifier.fillMaxWidth(0.8f)
                     )
 
-                    // Room Number Input Field
                     OutlinedTextField(
                         value = roomNumber,
                         onValueChange = { roomNumber = it },
-                        label = { Text("Room #", fontSize = 12.sp, color = textColor) },
-                        placeholder = { Text("Enter room", fontSize = 12.sp, color = Color.Gray) },
-                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp, color = textColor),
+                        label = { Text("Room #", fontSize = 14.sp, color = textColor) },
+                        placeholder = { Text("Enter room", fontSize = 14.sp, color = Color.Gray) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
-                        modifier = Modifier
-                            .width(150.dp) // Adjusted width for better fit
-                            .height(40.dp)
+                        modifier = Modifier.fillMaxWidth(0.8f)
                     )
 
-                    // Button Row
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        // Login Button
                         Button(
-                            onClick = {
-                                coroutineScope.launch {
-                                    snackbarHostState.showSnackbar("Logged in successfully!")
-                                }
-                            },
+                            onClick = { savePatientData(patientName, roomNumber) },
                             modifier = Modifier
-                                .width(80.dp) // Adjusted button width
-                                .height(40.dp),
+                                .width(100.dp)
+                                .height(45.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = buttonColor)
                         ) {
-                            Text(text = "Login", fontSize = 12.sp, color = buttonTextColor)
+                            Text(text = "Login", fontSize = 14.sp, color = buttonTextColor)
                         }
 
-                        // Sign Up Button
                         Button(
-                            onClick = {
-                                navController.navigate("signup_screen")
-                            },
+                            onClick = { navController.navigate("signup_screen") },
                             modifier = Modifier
-                                .width(80.dp) // Adjusted button width
-                                .height(40.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3CB371))
+                                .width(100.dp)
+                                .height(45.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = successColor)
                         ) {
-                            Text(text = "Sign Up", fontSize = 12.sp, color = buttonTextColor)
+                            Text(text = "Sign Up", fontSize = 14.sp, color = buttonTextColor)
                         }
                     }
                 }
             }
         }
     )
+}
+
+// 🔹 Function to Authenticate User Anonymously
+fun authenticateUser(auth: FirebaseAuth) {
+    if (auth.currentUser == null) {
+        auth.signInAnonymously()
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    Log.d("Auth", "Anonymous sign-in successful")
+                } else {
+                    Log.e("Auth", "Authentication failed", task.exception)
+                }
+            }
+    } else {
+        Log.d("Auth", "User already authenticated")
+    }
 }

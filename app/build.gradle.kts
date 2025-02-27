@@ -2,7 +2,9 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-}
+
+    }
+apply(plugin = "com.google.gms.google-services")
 
 android {
     namespace = "com.example.navbar"
@@ -39,7 +41,6 @@ android {
 }
 
 dependencies {
-
     implementation(libs.play.services.wearable)
     implementation(platform(libs.compose.bom))
     implementation(libs.ui)
@@ -54,12 +55,15 @@ dependencies {
     implementation(libs.navigation.compose)
     implementation(libs.material3.android)
     implementation(libs.material.icons.core.android)
-    implementation(libs.material.icons.core.android)
-    implementation(libs.material.icons.core.android)
-    implementation(libs.material.icons.core.android)
+
+    // Firebase
+    implementation(platform(libs.firebase.bom)) // Ensure latest BOM version
+    implementation(libs.firebase.firestore.ktx)
+    implementation(libs.firebase.database)
+    implementation(libs.firebase.auth.ktx)
+
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.ui.test.junit4)
     debugImplementation(libs.ui.tooling)
     debugImplementation(libs.ui.test.manifest)
-
 }
