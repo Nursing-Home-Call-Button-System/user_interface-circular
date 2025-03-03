@@ -67,8 +67,13 @@ fun LoginScreen(navController: NavHostController) {
             .add(patientData)
             .addOnSuccessListener { documentReference ->
                 Log.d("Firestore", "Document added with ID: ${documentReference.id}")
+
                 coroutineScope.launch {
                     snackbarHostState.showSnackbar("Logged in and saved to Firebase!")
+
+                    Log.d("Navigation", "Attempting to navigate to home/$name/$room") // ✅ Debugging
+
+                    navController.navigate("home/$name/$room") // ✅ Matches route in NavigationGraph
                 }
             }
             .addOnFailureListener { e ->
@@ -127,10 +132,16 @@ fun LoginScreen(navController: NavHostController) {
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         Button(
-                            onClick = { savePatientData(patientName, roomNumber) },
-                            modifier = Modifier
-                                .width(100.dp)
-                                .height(45.dp),
+                            onClick = {
+                                if (patientName.isNotBlank() && roomNumber.isNotBlank()) {
+                                    savePatientData(patientName, roomNumber) // ✅ Calling the function correctly
+                                } else {
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar("Please enter both fields")
+                                    }
+                                }
+                            },
+                            modifier = Modifier.width(100.dp).height(45.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = buttonColor)
                         ) {
                             Text(text = "Login", fontSize = 14.sp, color = buttonTextColor)

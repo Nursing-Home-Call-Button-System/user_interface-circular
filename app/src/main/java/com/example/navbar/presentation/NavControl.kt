@@ -1,5 +1,6 @@
 package com.example.navbar.presentation
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
@@ -13,31 +14,32 @@ import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material.*
 import androidx.compose.ui.graphics.Color
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 
 @Composable
 fun WearableNavigationBarWithScreens() {
     val navController = rememberNavController()
     var selectedItem by remember { mutableStateOf(0) }
     val config = LocalConfiguration.current
-    val isRound = config.screenWidthDp == config.screenHeightDp
 
     Scaffold(
         timeText = { TimeText() },
         vignette = { Vignette(vignettePosition = VignettePosition.TopAndBottom) }
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // Navigation Graph
+            // ✅ Calls the Fixed NavigationGraph
             NavigationGraph(navController)
 
-            // Bottom Navigation Bar (Optimized for 450x450 screens)
+            // Bottom Navigation Bar
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .padding(bottom = 22.dp) // Moves navbar slightly up for better visibility
+                    .padding(bottom = 22.dp)
             ) {
                 Row(
                     modifier = Modifier
@@ -46,11 +48,13 @@ fun WearableNavigationBarWithScreens() {
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Home Button (Icon Only)
+                    // ✅ Home Button - Now Passes Required Parameters
                     CompactChip(
                         onClick = {
                             selectedItem = 0
-                            navController.navigate("home") {
+                            val patientName = "Guest"  // Replace with actual data if available
+                            val roomNumber = "000"  // Replace with actual data if available
+                            navController.navigate("home/$patientName/$roomNumber") {
                                 popUpTo(navController.graph.startDestinationId) { inclusive = true }
                             }
                         },
@@ -58,14 +62,14 @@ fun WearableNavigationBarWithScreens() {
                             Icon(
                                 imageVector = Icons.Default.Home,
                                 contentDescription = "Home",
-                                modifier = Modifier.size(16.dp) // Smaller icon size
+                                modifier = Modifier.size(16.dp)
                             )
                         },
                         colors = ChipDefaults.primaryChipColors(Color.DarkGray),
-                        modifier = Modifier.width(65.dp).weight(1f) // Adjusted width & weight
+                        modifier = Modifier.width(65.dp).weight(1f)
                     )
 
-                    // Phone Button (Icon Only)
+                    // ✅ Phone Button
                     CompactChip(
                         onClick = {
                             selectedItem = 1
@@ -77,14 +81,14 @@ fun WearableNavigationBarWithScreens() {
                             Icon(
                                 imageVector = Icons.Default.Phone,
                                 contentDescription = "Phone",
-                                modifier = Modifier.size(16.dp) // Smaller icon size
+                                modifier = Modifier.size(16.dp)
                             )
                         },
                         colors = ChipDefaults.primaryChipColors(Color.DarkGray),
-                        modifier = Modifier.width(65.dp).weight(1f) // Adjusted width & weight
+                        modifier = Modifier.width(65.dp).weight(1f)
                     )
 
-                    // Settings Button (Icon Only)
+                    // ✅ Settings Button
                     CompactChip(
                         onClick = {
                             selectedItem = 2
@@ -96,11 +100,11 @@ fun WearableNavigationBarWithScreens() {
                             Icon(
                                 imageVector = Icons.Default.Settings,
                                 contentDescription = "Settings",
-                                modifier = Modifier.size(16.dp) // Smaller icon size
+                                modifier = Modifier.size(16.dp)
                             )
                         },
                         colors = ChipDefaults.primaryChipColors(Color.DarkGray),
-                        modifier = Modifier.width(65.dp).weight(1f) // Adjusted width & weight
+                        modifier = Modifier.width(65.dp).weight(1f)
                     )
                 }
             }
@@ -110,13 +114,29 @@ fun WearableNavigationBarWithScreens() {
 
 @Composable
 fun NavigationGraph(navController: NavHostController) {
-    NavHost(navController = navController, startDestination = "home") {
-        composable("home") { HomeScreen(navController) }
+    NavHost(navController = navController, startDestination = "profile_screen") {
+        composable("profile_screen") { LoginScreen(navController) }
+        composable("signup_screen") { SignUpScreen(navController) }
         composable("phone") { EmergencyScreen(navController) }
         composable("settings") { SettingsScreen(navController) }
         composable("emergency") { EmergencyScreen(navController) }
         composable("non_emergency") { NonEmergencyScreen(navController) }
-        composable("profile_screen") { LoginScreen(navController) }
-        composable("signup_screen") { SignUpScreen(navController) }
+
+        // ✅ Fixing HomeScreen by providing default parameters
+        composable(
+            route = "home/{patientName}/{roomNumber}",
+            arguments = listOf(
+                navArgument("patientName") { type = NavType.StringType; defaultValue = "Guest" },
+                navArgument("roomNumber") { type = NavType.StringType; defaultValue = "000" }
+            )
+        ) { backStackEntry ->
+            val patientName = backStackEntry.arguments?.getString("patientName") ?: "Guest"
+            val roomNumber = backStackEntry.arguments?.getString("roomNumber") ?: "000"
+
+            // ✅ Debugging Log to Ensure Navigation Works
+            Log.d("Navigation", "Navigated to HomeScreen with Patient: $patientName, Room: $roomNumber")
+
+            HomeScreen(navController, patientName, roomNumber)
+        }
     }
 }
