@@ -9,8 +9,8 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.wear.compose.material.*
 import androidx.compose.ui.graphics.Color
 import androidx.navigation.NavHostController
@@ -21,20 +21,22 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 
 @Composable
-fun WearableNavigationBarWithScreens() {
+fun WearableNavigationBarWithScreens(patientViewModel: PatientViewModel = viewModel()) {
     val navController = rememberNavController()
     var selectedItem by remember { mutableStateOf(0) }
-    val config = LocalConfiguration.current
+
+    // ✅ Retrieve patient data from ViewModel
+    val patientName by patientViewModel.patientName.collectAsState()
+    val roomNumber by patientViewModel.roomNumber.collectAsState()
 
     Scaffold(
         timeText = { TimeText() },
         vignette = { Vignette(vignettePosition = VignettePosition.TopAndBottom) }
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // ✅ Calls the Fixed NavigationGraph
             NavigationGraph(navController)
 
-            // Bottom Navigation Bar
+            // ✅ Bottom Navigation Bar
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -48,14 +50,16 @@ fun WearableNavigationBarWithScreens() {
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // ✅ Home Button - Now Passes Required Parameters
+                    // ✅ Home Button - Navigates only if patient data exists
                     CompactChip(
                         onClick = {
                             selectedItem = 0
-                            val patientName = "Guest"  // Replace with actual data if available
-                            val roomNumber = "000"  // Replace with actual data if available
-                            navController.navigate("home/$patientName/$roomNumber") {
-                                popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                            if (patientName.isNotBlank() && roomNumber.isNotBlank()) {
+                                navController.navigate("home/$patientName/$roomNumber") {
+                                    popUpTo(navController.graph.startDestinationRoute!!) { inclusive = false }
+                                }
+                            } else {
+                                Log.e("Navigation", "❌ Cannot navigate: Patient data is missing!")
                             }
                         },
                         icon = {
@@ -66,16 +70,14 @@ fun WearableNavigationBarWithScreens() {
                             )
                         },
                         colors = ChipDefaults.primaryChipColors(Color.DarkGray),
-                        modifier = Modifier.width(65.dp).weight(1f)
+                        modifier = Modifier.weight(1f)
                     )
 
-                    // ✅ Phone Button
+                    // ✅ Phone Button (Emergency)
                     CompactChip(
                         onClick = {
                             selectedItem = 1
-                            navController.navigate("phone") {
-                                popUpTo(navController.graph.startDestinationId) { inclusive = true }
-                            }
+                            navController.navigate("phone")
                         },
                         icon = {
                             Icon(
@@ -85,16 +87,14 @@ fun WearableNavigationBarWithScreens() {
                             )
                         },
                         colors = ChipDefaults.primaryChipColors(Color.DarkGray),
-                        modifier = Modifier.width(65.dp).weight(1f)
+                        modifier = Modifier.weight(1f)
                     )
 
-                    // ✅ Settings Button
+                    // ✅ Settings Button - Includes Logout Option
                     CompactChip(
                         onClick = {
                             selectedItem = 2
-                            navController.navigate("settings") {
-                                popUpTo(navController.graph.startDestinationId) { inclusive = true }
-                            }
+                            navController.navigate("settings")
                         },
                         icon = {
                             Icon(
@@ -104,7 +104,7 @@ fun WearableNavigationBarWithScreens() {
                             )
                         },
                         colors = ChipDefaults.primaryChipColors(Color.DarkGray),
-                        modifier = Modifier.width(65.dp).weight(1f)
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
@@ -116,26 +116,25 @@ fun WearableNavigationBarWithScreens() {
 fun NavigationGraph(navController: NavHostController) {
     NavHost(navController = navController, startDestination = "profile_screen") {
         composable("profile_screen") { LoginScreen(navController) }
+        composable("login_screen") { LoginScreen(navController) } // ✅ Added login screen
         composable("signup_screen") { SignUpScreen(navController) }
         composable("phone") { EmergencyScreen(navController) }
         composable("settings") { SettingsScreen(navController) }
         composable("emergency") { EmergencyScreen(navController) }
         composable("non_emergency") { NonEmergencyScreen(navController) }
 
-        // ✅ Fixing HomeScreen by providing default parameters
+        // ✅ Home Navigation with Default Parameters
         composable(
             route = "home/{patientName}/{roomNumber}",
             arguments = listOf(
-                navArgument("patientName") { type = NavType.StringType; defaultValue = "Guest" },
-                navArgument("roomNumber") { type = NavType.StringType; defaultValue = "000" }
+                navArgument("patientName") { type = NavType.StringType },
+                navArgument("roomNumber") { type = NavType.StringType }
             )
         ) { backStackEntry ->
-            val patientName = backStackEntry.arguments?.getString("patientName") ?: "Guest"
-            val roomNumber = backStackEntry.arguments?.getString("roomNumber") ?: "000"
+            val patientName = backStackEntry.arguments?.getString("patientName") ?: "Unknown"
+            val roomNumber = backStackEntry.arguments?.getString("roomNumber") ?: "N/A"
 
-            // ✅ Debugging Log to Ensure Navigation Works
-            Log.d("Navigation", "Navigated to HomeScreen with Patient: $patientName, Room: $roomNumber")
-
+            Log.d("Navigation", "✅ Navigated to HomeScreen - Patient: $patientName, Room: $roomNumber")
             HomeScreen(navController, patientName, roomNumber)
         }
     }

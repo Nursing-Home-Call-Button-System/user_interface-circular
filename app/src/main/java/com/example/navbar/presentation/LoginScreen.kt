@@ -13,34 +13,24 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 
 @Composable
-fun LoginScreen(navController: NavHostController) {
-    val config = LocalConfiguration.current
-    val isRound = config.screenWidthDp == config.screenHeightDp
-
-    var patientName by remember { mutableStateOf("") }
-    var roomNumber by remember { mutableStateOf("") }
+fun LoginScreen(
+    navController: NavHostController,
+    patientViewModel: PatientViewModel = viewModel()
+) {
+    val auth = FirebaseAuth.getInstance()
+    val db = FirebaseFirestore.getInstance()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
-    val backgroundColor = Color(0xFFF5F5DC)  // Soft Beige
-    val buttonColor = Color(0xFF4682B4)  // Steel Blue
-    val successColor = Color(0xFF3CB371) // Medium Sea Green
-    val buttonTextColor = Color.White
-    val textColor = Color.Black
-
-    val auth = FirebaseAuth.getInstance()
-    val db = FirebaseFirestore.getInstance()
-
-    // 🔹 Authenticate the user when the screen loads
-    LaunchedEffect(Unit) {
-        authenticateUser(auth)
-    }
+    var patientName by remember { mutableStateOf("") }
+    var roomNumber by remember { mutableStateOf("") }
 
     fun savePatientData(name: String, room: String) {
         if (auth.currentUser == null) {
@@ -57,27 +47,32 @@ fun LoginScreen(navController: NavHostController) {
             return
         }
 
+        val userId = auth.currentUser!!.uid
+
         val patientData = hashMapOf(
+            "uid" to userId,
             "name" to name,
             "roomNumber" to room,
             "timestamp" to System.currentTimeMillis()
         )
 
         db.collection("patients")
-            .add(patientData)
-            .addOnSuccessListener { documentReference ->
-                Log.d("Firestore", "Document added with ID: ${documentReference.id}")
+            .document(userId)
+            .set(patientData)
+            .addOnSuccessListener {
+                Log.d("Firestore", "✅ Patient data saved for UID: $userId")
+
+                patientViewModel.setPatientData(name, room)
 
                 coroutineScope.launch {
-                    snackbarHostState.showSnackbar("Logged in and saved to Firebase!")
-
-                    Log.d("Navigation", "Attempting to navigate to home/$name/$room") // ✅ Debugging
-
-                    navController.navigate("home/$name/$room") // ✅ Matches route in NavigationGraph
+                    snackbarHostState.showSnackbar("Login successful!")
+                    navController.navigate("home/$name/$room") {
+                        popUpTo("profile_screen") { inclusive = true }
+                    }
                 }
             }
             .addOnFailureListener { e ->
-                Log.e("Firestore", "Error adding document", e)
+                Log.e("Firestore", "❌ Error saving data", e)
                 coroutineScope.launch {
                     snackbarHostState.showSnackbar("Error saving data")
                 }
@@ -90,7 +85,7 @@ fun LoginScreen(navController: NavHostController) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(backgroundColor)
+                    .background(Color(0xFFF5F5DC)) // Soft Beige
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
@@ -104,15 +99,15 @@ fun LoginScreen(navController: NavHostController) {
                     Text(
                         text = "Patient Profile",
                         fontSize = 16.sp,
-                        color = textColor,
+                        color = Color.Black,
                         style = MaterialTheme.typography.titleMedium
                     )
 
                     OutlinedTextField(
                         value = patientName,
                         onValueChange = { patientName = it },
-                        label = { Text("Name", fontSize = 14.sp, color = textColor) },
-                        placeholder = { Text("Enter name", fontSize = 14.sp, color = Color.Gray) },
+                        label = { Text("Name") },
+                        placeholder = { Text("Enter name") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(0.8f)
                     )
@@ -120,8 +115,8 @@ fun LoginScreen(navController: NavHostController) {
                     OutlinedTextField(
                         value = roomNumber,
                         onValueChange = { roomNumber = it },
-                        label = { Text("Room #", fontSize = 14.sp, color = textColor) },
-                        placeholder = { Text("Enter room", fontSize = 14.sp, color = Color.Gray) },
+                        label = { Text("Room #") },
+                        placeholder = { Text("Enter room") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(0.8f)
@@ -132,49 +127,23 @@ fun LoginScreen(navController: NavHostController) {
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         Button(
-                            onClick = {
-                                if (patientName.isNotBlank() && roomNumber.isNotBlank()) {
-                                    savePatientData(patientName, roomNumber) // ✅ Calling the function correctly
-                                } else {
-                                    coroutineScope.launch {
-                                        snackbarHostState.showSnackbar("Please enter both fields")
-                                    }
-                                }
-                            },
+                            onClick = { savePatientData(patientName, roomNumber) },
                             modifier = Modifier.width(100.dp).height(45.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = buttonColor)
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4682B4)) // Steel Blue
                         ) {
-                            Text(text = "Login", fontSize = 14.sp, color = buttonTextColor)
+                            Text(text = "Login", fontSize = 14.sp, color = Color.White)
                         }
 
                         Button(
                             onClick = { navController.navigate("signup_screen") },
-                            modifier = Modifier
-                                .width(100.dp)
-                                .height(45.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = successColor)
+                            modifier = Modifier.width(100.dp).height(45.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3CB371)) // Medium Sea Green
                         ) {
-                            Text(text = "Sign Up", fontSize = 14.sp, color = buttonTextColor)
+                            Text(text = "Sign Up", fontSize = 14.sp, color = Color.White)
                         }
                     }
                 }
             }
         }
     )
-}
-
-// 🔹 Function to Authenticate User Anonymously
-fun authenticateUser(auth: FirebaseAuth) {
-    if (auth.currentUser == null) {
-        auth.signInAnonymously()
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    Log.d("Auth", "Anonymous sign-in successful")
-                } else {
-                    Log.e("Auth", "Authentication failed", task.exception)
-                }
-            }
-    } else {
-        Log.d("Auth", "User already authenticated")
-    }
 }
