@@ -50,16 +50,15 @@ fun WearableNavigationBarWithScreens(patientViewModel: PatientViewModel = viewMo
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // ✅ Home Button - Navigates only if patient data exists
+                    // ✅ Home Button - Navigates with default fallbacks
                     CompactChip(
                         onClick = {
                             selectedItem = 0
-                            if (patientName.isNotBlank() && roomNumber.isNotBlank()) {
-                                navController.navigate("home/$patientName/$roomNumber") {
-                                    popUpTo(navController.graph.startDestinationRoute!!) { inclusive = false }
-                                }
-                            } else {
-                                Log.e("Navigation", "❌ Cannot navigate: Patient data is missing!")
+                            val safePatientName = if (patientName.isNotBlank()) patientName else "Unknown"
+                            val safeRoomNumber = if (roomNumber.isNotBlank()) roomNumber else "N/A"
+
+                            navController.navigate("home/$safePatientName/$safeRoomNumber") {
+                                popUpTo(navController.graph.startDestinationRoute!!) { inclusive = false }
                             }
                         },
                         icon = {
@@ -90,7 +89,7 @@ fun WearableNavigationBarWithScreens(patientViewModel: PatientViewModel = viewMo
                         modifier = Modifier.weight(1f)
                     )
 
-                    // ✅ Settings Button - Includes Logout Option
+                    // ✅ Settings Button
                     CompactChip(
                         onClick = {
                             selectedItem = 2
@@ -116,7 +115,7 @@ fun WearableNavigationBarWithScreens(patientViewModel: PatientViewModel = viewMo
 fun NavigationGraph(navController: NavHostController) {
     NavHost(navController = navController, startDestination = "profile_screen") {
         composable("profile_screen") { LoginScreen(navController) }
-        composable("login_screen") { LoginScreen(navController) } // ✅ Added login screen
+        composable("login_screen") { LoginScreen(navController) }
         composable("signup_screen") { SignUpScreen(navController) }
         composable("phone") { EmergencyScreen(navController) }
         composable("settings") { SettingsScreen(navController) }
