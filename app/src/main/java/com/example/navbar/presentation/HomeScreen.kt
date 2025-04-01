@@ -45,34 +45,39 @@ fun HomeScreen(navController: NavController, patientName: String, roomNumber: St
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 🚨 Emergency Button
+            // 🚨 Rectangular Emergency Button
             Button(
                 onClick = {
                     sendAlertToFirebase(patientName, roomNumber, "Emergency")
                     navController.navigate("emergency")
                 },
-                modifier = Modifier.size(140.dp, 50.dp),
-                colors = ButtonDefaults.buttonColors(Color(0xFFCC0000)) // Red color for emergency
+                modifier = Modifier
+                    .width(180.dp)
+                    .height(45.dp),
+                colors = ButtonDefaults.buttonColors(Color(0xFFCC0000)) // Red color
             ) {
                 Text(text = "Emergency", color = Color.White, fontSize = 16.sp)
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // 🏥 Non-Emergency Button
+            // 🏥 Rectangular Non-Emergency Button
             Button(
                 onClick = {
                     sendAlertToFirebase(patientName, roomNumber, "Non-Emergency")
                     navController.navigate("non_emergency")
                 },
-                modifier = Modifier.size(140.dp, 50.dp),
-                colors = ButtonDefaults.buttonColors(Color(0xFF00B4D8)) // Blue color for non-emergency
+                modifier = Modifier
+                    .width(180.dp)
+                    .height(45.dp),
+                colors = ButtonDefaults.buttonColors(Color(0xFF00B4D8)) // Blue color
             ) {
                 Text(text = "Non-Emergency", color = Color.Black, fontSize = 16.sp)
             }
         }
     }
 }
+
 
 // ✅ Function to Send Alerts to Firestore
 fun sendAlertToFirebase(patientName: String, roomNumber: String, alertType: String) {

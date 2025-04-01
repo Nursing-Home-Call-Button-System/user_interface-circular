@@ -41,12 +41,12 @@ fun WearableNavigationBarWithScreens(patientViewModel: PatientViewModel = viewMo
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .padding(bottom = 22.dp)
+                    .padding(bottom = 10.dp)
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
+                        .padding(horizontal = 4.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -65,11 +65,13 @@ fun WearableNavigationBarWithScreens(patientViewModel: PatientViewModel = viewMo
                             Icon(
                                 imageVector = Icons.Default.Home,
                                 contentDescription = "Home",
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(10.dp)
                             )
                         },
                         colors = ChipDefaults.primaryChipColors(Color.DarkGray),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .width(48.dp)     // Adjust width
+                            .height(36.dp)    // Adjust height
                     )
 
                     // ✅ Phone Button (Emergency)
@@ -82,11 +84,13 @@ fun WearableNavigationBarWithScreens(patientViewModel: PatientViewModel = viewMo
                             Icon(
                                 imageVector = Icons.Default.Phone,
                                 contentDescription = "Phone",
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(10.dp)
                             )
                         },
                         colors = ChipDefaults.primaryChipColors(Color.DarkGray),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .width(48.dp)     // Adjust width
+                            .height(36.dp)    // Adjust height
                     )
 
                     // ✅ Settings Button
@@ -99,11 +103,13 @@ fun WearableNavigationBarWithScreens(patientViewModel: PatientViewModel = viewMo
                             Icon(
                                 imageVector = Icons.Default.Settings,
                                 contentDescription = "Settings",
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(10.dp)
                             )
                         },
                         colors = ChipDefaults.primaryChipColors(Color.DarkGray),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .width(48.dp)     // Adjust width
+                            .height(36.dp)    // Adjust height
                     )
                 }
             }

@@ -80,70 +80,88 @@ fun LoginScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        content = { paddingValues ->
-            Box(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFF5F5DC)) // Soft Beige
+                .padding(paddingValues),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xFFF5F5DC)) // Soft Beige
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Column(
+                Text(
+                    text = "Patient Profile",
+                    fontSize = 16.sp,
+                    color = Color.Black,
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = patientName,
+                    onValueChange = { patientName = it },
+                    label = { Text("Name") },
+                    placeholder = { Text("Enter name") },
+                    singleLine = true,
+                    textStyle = LocalTextStyle.current.copy(fontSize = 10.sp),
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                        .width(150.dp) // Smaller width
+                        .height(48.dp) // Optional height control
+                )
+
+                OutlinedTextField(
+                    value = roomNumber,
+                    onValueChange = { roomNumber = it },
+                    label = { Text("Room #") },
+                    placeholder = { Text("Enter room") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    textStyle = LocalTextStyle.current.copy(fontSize = 10.sp),
+                    modifier = Modifier
+                        .width(150.dp) // Smaller width
+                        .height(48.dp) // Optional height control
+                )
+
+                Spacer(modifier = Modifier.height(8.dp)) // adds space after Room field
+
+                Row(
+                    modifier = Modifier
+                        .padding(bottom = 20.dp) // pushes buttons up from nav bar
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    Text(
-                        text = "Patient Profile",
-                        fontSize = 16.sp,
-                        color = Color.Black,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-
-                    OutlinedTextField(
-                        value = patientName,
-                        onValueChange = { patientName = it },
-                        label = { Text("Name") },
-                        placeholder = { Text("Enter name") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(0.8f)
-                    )
-
-                    OutlinedTextField(
-                        value = roomNumber,
-                        onValueChange = { roomNumber = it },
-                        label = { Text("Room #") },
-                        placeholder = { Text("Enter room") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(0.8f)
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
+                    Button(
+                        onClick = { savePatientData(patientName, roomNumber) },
+                        modifier = Modifier
+                            .width(90.dp)
+                            .height(42.dp),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4682B4))
                     ) {
-                        Button(
-                            onClick = { savePatientData(patientName, roomNumber) },
-                            modifier = Modifier.width(100.dp).height(45.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4682B4)) // Steel Blue
-                        ) {
-                            Text(text = "Login", fontSize = 14.sp, color = Color.White)
-                        }
+                        Text(text = "Login", fontSize = 8.sp, color = Color.White)
+                    }
 
-                        Button(
-                            onClick = { navController.navigate("signup_screen") },
-                            modifier = Modifier.width(100.dp).height(45.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3CB371)) // Medium Sea Green
-                        ) {
-                            Text(text = "Sign Up", fontSize = 14.sp, color = Color.White)
-                        }
+                    Button(
+                        onClick = { navController.navigate("signup_screen") },
+                        modifier = Modifier
+                            .width(90.dp)
+                            .height(42.dp),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3CB371))
+                    ) {
+                        Text(text = "Sign Up", fontSize = 8.sp, color = Color.White)
                     }
                 }
+
             }
         }
-    )
+    }
 }
