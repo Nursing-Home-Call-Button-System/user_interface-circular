@@ -9,7 +9,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,13 +32,6 @@ fun LoginScreen(
     var roomNumber by remember { mutableStateOf("") }
 
     fun savePatientData(name: String, room: String) {
-        if (auth.currentUser == null) {
-            coroutineScope.launch {
-                snackbarHostState.showSnackbar("Authentication failed, please try again")
-            }
-            return
-        }
-
         if (name.isBlank() || room.isBlank()) {
             coroutineScope.launch {
                 snackbarHostState.showSnackbar("Please enter both fields")
@@ -47,34 +39,43 @@ fun LoginScreen(
             return
         }
 
-        val userId = auth.currentUser!!.uid
+        auth.signInAnonymously()
+            .addOnSuccessListener { authResult ->
+                val userId = authResult.user?.uid
 
-        val patientData = hashMapOf(
-            "uid" to userId,
-            "name" to name,
-            "roomNumber" to room,
-            "timestamp" to System.currentTimeMillis()
-        )
+                val patientData = hashMapOf(
+                    "uid" to userId,
+                    "name" to name,
+                    "roomNumber" to room,
+                    "timestamp" to System.currentTimeMillis()
+                )
 
-        db.collection("patients")
-            .document(userId)
-            .set(patientData)
-            .addOnSuccessListener {
-                Log.d("Firestore", "✅ Patient data saved for UID: $userId")
+                db.collection("patients")
+                    .document(userId ?: "")
+                    .set(patientData)
+                    .addOnSuccessListener {
+                        Log.d("Firestore", "✅ Patient data saved for UID: $userId")
 
-                patientViewModel.setPatientData(name, room)
+                        patientViewModel.setPatientData(name, room)
 
-                coroutineScope.launch {
-                    snackbarHostState.showSnackbar("Login successful!")
-                    navController.navigate("home/$name/$room") {
-                        popUpTo("profile_screen") { inclusive = true }
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar("Login successful!")
+                            navController.navigate("home/$name/$room") {
+                                popUpTo("profile_screen") { inclusive = true }
+                            }
+                        }
                     }
-                }
+                    .addOnFailureListener { e ->
+                        Log.e("Firestore", "❌ Error saving data", e)
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar("Error saving data")
+                        }
+                    }
             }
             .addOnFailureListener { e ->
-                Log.e("Firestore", "❌ Error saving data", e)
+                Log.e("Auth", "❌ Anonymous login failed", e)
                 coroutineScope.launch {
-                    snackbarHostState.showSnackbar("Error saving data")
+                    snackbarHostState.showSnackbar("Authentication failed, please try again")
                 }
             }
     }
@@ -113,8 +114,8 @@ fun LoginScreen(
                     singleLine = true,
                     textStyle = LocalTextStyle.current.copy(fontSize = 10.sp),
                     modifier = Modifier
-                        .width(150.dp) // Smaller width
-                        .height(48.dp) // Optional height control
+                        .width(150.dp)
+                        .height(48.dp)
                 )
 
                 OutlinedTextField(
@@ -126,15 +127,15 @@ fun LoginScreen(
                     singleLine = true,
                     textStyle = LocalTextStyle.current.copy(fontSize = 10.sp),
                     modifier = Modifier
-                        .width(150.dp) // Smaller width
-                        .height(48.dp) // Optional height control
+                        .width(150.dp)
+                        .height(48.dp)
                 )
 
-                Spacer(modifier = Modifier.height(8.dp)) // adds space after Room field
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Row(
                     modifier = Modifier
-                        .padding(bottom = 20.dp) // pushes buttons up from nav bar
+                        .padding(bottom = 20.dp)
                         .fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
@@ -160,7 +161,6 @@ fun LoginScreen(
                         Text(text = "Sign Up", fontSize = 8.sp, color = Color.White)
                     }
                 }
-
             }
         }
     }
