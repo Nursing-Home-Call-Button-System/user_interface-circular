@@ -5,6 +5,8 @@ import android.content.pm.PackageManager
 import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,22 +23,25 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
+import android.net.Uri
+import android.util.Log
+import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.firestore.FirebaseFirestore
 import java.io.File
+import java.util.UUID
 
 @Composable
 fun EmergencyScreen(navController: NavHostController) {
     val context = LocalContext.current
     val config = LocalConfiguration.current
 
-    val isRound = config.screenWidthDp == config.screenHeightDp // Detect round screen
-
-    val audioFile = File(context.externalCacheDir, "emergency_message.3gp")
+    val audioFile = File(context.externalCacheDir, "emergency_message.aac")
     var mediaRecorder by remember { mutableStateOf<MediaRecorder?>(null) }
     var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
     var isRecording by remember { mutableStateOf(false) }
     var isPlaying by remember { mutableStateOf(false) }
 
-    val requestPermissionLauncher = rememberLauncherForActivityResult(
+    val requestRecordPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (!isGranted) {
@@ -49,13 +54,13 @@ fun EmergencyScreen(navController: NavHostController) {
     ) == PackageManager.PERMISSION_GRANTED
 
     Scaffold(
-        containerColor = Color(0xffCC0000) // Red background for emergency
-    ) { _ ->
+        containerColor = Color(0xffCC0000)
+    ) { innerPadding ->
         Box(
             modifier = Modifier
+                .padding(innerPadding)
                 .fillMaxSize()
-                .background(Color(0xffCC0000)) // Red background
-                .padding(12.dp),
+                .background(Color(0xffCC0000)),
             contentAlignment = Alignment.Center
         ) {
             Column(
@@ -63,7 +68,7 @@ fun EmergencyScreen(navController: NavHostController) {
                     .wrapContentSize()
                     .padding(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp) // Ensures even spacing
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
                     text = "Emergency Message",
@@ -72,7 +77,6 @@ fun EmergencyScreen(navController: NavHostController) {
                     modifier = Modifier.padding(bottom = 6.dp)
                 )
 
-                // Row for Start and Stop Recording
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -82,7 +86,7 @@ fun EmergencyScreen(navController: NavHostController) {
                                 startRecording(audioFile, context) { recorder -> mediaRecorder = recorder }
                                 isRecording = true
                             } else {
-                                requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                requestRecordPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                             }
                         },
                         enabled = !isRecording,
@@ -95,8 +99,27 @@ fun EmergencyScreen(navController: NavHostController) {
 
                     Button(
                         onClick = {
-                            stopRecording(mediaRecorder)
-                            isRecording = false
+                            stopRecording(mediaRecorder) {
+                                isRecording = false
+
+                                Handler(Looper.getMainLooper()).postDelayed({
+                                    uploadAudioToFirebase(audioFile, context,
+                                        onSuccess = { downloadUrl ->
+                                            Toast.makeText(context, "Audio uploaded successfully!", Toast.LENGTH_SHORT).show()
+
+                                            saveAudioMetadataToFirestore(
+                                                audioUrl = downloadUrl,
+                                                patientName = "John Doe",
+                                                roomNumber = "101",
+                                                alertType = "Emergency"
+                                            )
+                                        },
+                                        onFailure = { e ->
+                                            Toast.makeText(context, "Upload failed: ${e.message}", Toast.LENGTH_LONG).show()
+                                        }
+                                    )
+                                }, 300)
+                            }
                         },
                         enabled = isRecording,
                         modifier = Modifier
@@ -107,7 +130,6 @@ fun EmergencyScreen(navController: NavHostController) {
                     }
                 }
 
-                // Row for Play and Stop Playback
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -148,13 +170,13 @@ fun EmergencyScreen(navController: NavHostController) {
     }
 }
 
-// Function to Start Recording
+// Start recording with AAC
 fun startRecording(audioFile: File, context: android.content.Context, onRecorderReady: (MediaRecorder) -> Unit) {
     try {
         val mediaRecorder = MediaRecorder().apply {
             setAudioSource(MediaRecorder.AudioSource.MIC)
-            setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
-            setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
+            setOutputFormat(MediaRecorder.OutputFormat.AAC_ADTS) // AAC format
+            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)      // AAC encoder
             setOutputFile(audioFile.absolutePath)
             prepare()
             start()
@@ -166,19 +188,20 @@ fun startRecording(audioFile: File, context: android.content.Context, onRecorder
     }
 }
 
-// Function to Stop Recording
-fun stopRecording(mediaRecorder: MediaRecorder?) {
+// Stop recording
+fun stopRecording(mediaRecorder: MediaRecorder?, onStopped: () -> Unit) {
     try {
         mediaRecorder?.apply {
             stop()
             release()
         }
+        onStopped()
     } catch (e: Exception) {
         e.printStackTrace()
     }
 }
 
-// Function to Play the Recorded Audio
+// Play recording
 fun playRecording(audioFile: File, context: android.content.Context, onPlayerReady: (MediaPlayer) -> Unit) {
     try {
         val mediaPlayer = MediaPlayer().apply {
@@ -186,7 +209,7 @@ fun playRecording(audioFile: File, context: android.content.Context, onPlayerRea
             prepare()
             start()
             setOnCompletionListener {
-                onPlayerReady(this) // Set playback state properly
+                onPlayerReady(this)
             }
         }
         onPlayerReady(mediaPlayer)
@@ -196,7 +219,7 @@ fun playRecording(audioFile: File, context: android.content.Context, onPlayerRea
     }
 }
 
-// Function to Stop Playback
+// Stop playback
 fun stopPlayback(mediaPlayer: MediaPlayer?) {
     try {
         mediaPlayer?.apply {
@@ -206,4 +229,40 @@ fun stopPlayback(mediaPlayer: MediaPlayer?) {
     } catch (e: Exception) {
         e.printStackTrace()
     }
+}
+
+// Upload to Firebase
+fun uploadAudioToFirebase(audioFile: File, context: android.content.Context, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {
+    val storageRef = FirebaseStorage.getInstance().reference
+    val audioRef = storageRef.child("audio_messages/${UUID.randomUUID()}.aac")
+
+    if (audioFile.length() == 0L) {
+        Toast.makeText(context, "Recorded file is empty! Please try again.", Toast.LENGTH_LONG).show()
+        return
+    }
+
+    val uploadTask = audioRef.putFile(Uri.fromFile(audioFile))
+
+    uploadTask.addOnSuccessListener {
+        audioRef.downloadUrl.addOnSuccessListener { uri ->
+            onSuccess(uri.toString())
+        }
+    }.addOnFailureListener { exception ->
+        onFailure(exception)
+    }
+}
+
+// Save metadata to Firestore
+fun saveAudioMetadataToFirestore(audioUrl: String, patientName: String, roomNumber: String, alertType: String) {
+    val db = FirebaseFirestore.getInstance()
+    val alert = hashMapOf(
+        "patientName" to patientName,
+        "roomNumber" to roomNumber,
+        "alertType" to alertType,
+        "audioUrl" to audioUrl,
+        "timestamp" to System.currentTimeMillis()
+    )
+
+    db.collection("alerts")
+        .add(alert)
 }

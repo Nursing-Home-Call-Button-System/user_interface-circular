@@ -19,6 +19,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 @Composable
 fun WearableNavigationBarWithScreens(patientViewModel: PatientViewModel = viewModel()) {
@@ -50,14 +52,18 @@ fun WearableNavigationBarWithScreens(patientViewModel: PatientViewModel = viewMo
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // ✅ Home Button - Navigates with default fallbacks
+                    // ✅ Home Button - Now with SAFE navigation
                     CompactChip(
                         onClick = {
                             selectedItem = 0
                             val safePatientName = if (patientName.isNotBlank()) patientName else "Unknown"
                             val safeRoomNumber = if (roomNumber.isNotBlank()) roomNumber else "N/A"
 
-                            navController.navigate("home/$safePatientName/$safeRoomNumber") {
+                            // 🔥 Proper URL Encoding
+                            val encodedPatientName = URLEncoder.encode(safePatientName, StandardCharsets.UTF_8.toString())
+                            val encodedRoomNumber = URLEncoder.encode(safeRoomNumber, StandardCharsets.UTF_8.toString())
+
+                            navController.navigate("home/$encodedPatientName/$encodedRoomNumber") {
                                 popUpTo(navController.graph.startDestinationRoute!!) { inclusive = false }
                             }
                         },
@@ -70,8 +76,8 @@ fun WearableNavigationBarWithScreens(patientViewModel: PatientViewModel = viewMo
                         },
                         colors = ChipDefaults.primaryChipColors(Color.DarkGray),
                         modifier = Modifier
-                            .width(48.dp)     // Adjust width
-                            .height(36.dp)    // Adjust height
+                            .width(48.dp)
+                            .height(36.dp)
                     )
 
                     // ✅ Phone Button (Emergency)
@@ -89,8 +95,8 @@ fun WearableNavigationBarWithScreens(patientViewModel: PatientViewModel = viewMo
                         },
                         colors = ChipDefaults.primaryChipColors(Color.DarkGray),
                         modifier = Modifier
-                            .width(48.dp)     // Adjust width
-                            .height(36.dp)    // Adjust height
+                            .width(48.dp)
+                            .height(36.dp)
                     )
 
                     // ✅ Settings Button
@@ -108,8 +114,8 @@ fun WearableNavigationBarWithScreens(patientViewModel: PatientViewModel = viewMo
                         },
                         colors = ChipDefaults.primaryChipColors(Color.DarkGray),
                         modifier = Modifier
-                            .width(48.dp)     // Adjust width
-                            .height(36.dp)    // Adjust height
+                            .width(48.dp)
+                            .height(36.dp)
                     )
                 }
             }
@@ -128,7 +134,7 @@ fun NavigationGraph(navController: NavHostController) {
         composable("emergency") { EmergencyScreen(navController) }
         composable("non_emergency") { NonEmergencyScreen(navController) }
 
-        // ✅ Home Navigation with Default Parameters
+        // ✅ Home Navigation with Encoded Parameters
         composable(
             route = "home/{patientName}/{roomNumber}",
             arguments = listOf(
